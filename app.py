@@ -80,6 +80,12 @@ h1 {
     margin-top: 40px;
 }
 
+/* Always-red Netflix accent */
+.always-red {
+    color: #E50914 !important;
+    font-weight: 600;
+}
+
 /* Movie cards */
 .movie-name {
     text-align: center;
@@ -116,6 +122,23 @@ img {
 }
 img:hover {
     transform: scale(1.06);
+}
+
+/* Footer */
+.footer {
+    margin-top: 60px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+    font-size: 14px;
+    text-align: center;
+    color: #666666;
+}
+
+@media (prefers-color-scheme: dark) {
+    .footer {
+        border-top: 1px solid #333333;
+        color: #aaaaaa;
+    }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -216,7 +239,13 @@ if poster:
 
 # ---------------- RECOMMENDATIONS ----------------
 st.markdown(
-    "<div class='section-title'>Recommended for you</div>",
+    """
+    <div class="section-title">
+        The following films
+        <span class="always-red"> match your taste</span>
+    </div>
+    <br>
+    """,
     unsafe_allow_html=True
 )
 
@@ -241,3 +270,16 @@ for col, movie in zip(cols, recommend(selected_movie)):
             st.markdown(f"<div class='rating rt'>🍅 {rt_r}</div>", unsafe_allow_html=True)
 
         st.markdown(f"<div class='movie-name'>{movie}</div>", unsafe_allow_html=True)
+
+# ---------------- FOOTER ----------------
+st.markdown(
+    """
+    <div class="footer">
+        Created by <b>Soham Mondal</b><br>
+        For any query contact <b>
+        <a href="mailto:sohammondal29@gmail.com">sohammondal29@gmail.com</a>
+        </b>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
