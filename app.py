@@ -14,54 +14,102 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ---------------- CINEMATCH STYLING ----------------
+# ---------------- AUTO LIGHT / DARK STYLING ----------------
 st.markdown("""
 <style>
-body, .main {
-    background: radial-gradient(circle at top, #1f1f1f, #0b0b0b);
-    color: white;
+/* ===== DEFAULT (Light Mode) ===== */
+html, body, [class*="css"] {
+    background-color: #ffffff !important;
+    color: #000000 !important;
 }
+
+.main {
+    background-color: #ffffff !important;
+}
+
+section[data-testid="stSidebar"] {
+    background-color: #ffffff !important;
+}
+
+/* ===== DARK MODE ===== */
+@media (prefers-color-scheme: dark) {
+    html, body, [class*="css"] {
+        background-color: #000000 !important;
+        color: #ffffff !important;
+    }
+
+    .main {
+        background-color: #000000 !important;
+    }
+
+    section[data-testid="stSidebar"] {
+        background-color: #000000 !important;
+    }
+}
+
+/* Remove link styling */
 a, a:visited, a:hover, a:active {
     color: inherit !important;
     text-decoration: none !important;
 }
+
+/* Typography */
 h1 {
     font-size: 64px;
     font-weight: 800;
     letter-spacing: -2px;
 }
+
 .tagline {
     font-size: 20px;
-    color: #b3b3b3;
-    margin-top: -10px;
+    color: #777777;
 }
+
+@media (prefers-color-scheme: dark) {
+    .tagline {
+        color: #b3b3b3;
+    }
+}
+
 .accent {
-    background: linear-gradient(90deg, #ff512f, #dd2476);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: #E50914;
 }
+
 .section-title {
     font-size: 28px;
     margin-top: 40px;
 }
+
+/* Movie cards */
 .movie-name {
     text-align: center;
     font-size: 15px;
     margin-top: 6px;
-    color: #e5e5e5;
 }
+
+/* Ratings */
 .rating {
     font-size: 15px;
     margin-top: 6px;
 }
 .imdb { color: #f5c518; }
-.rt { color: #FF4C4C; }
+.rt { color: #E50914; }
+
+/* Plot */
 .plot {
     font-size: 15px;
-    color: #cccccc;
+    color: #555555;
     margin-top: 12px;
     line-height: 1.4;
 }
+
+@media (prefers-color-scheme: dark) {
+    .plot {
+        color: #cccccc;
+    }
+}
+
+/* Images */
 img {
     border-radius: 12px;
     transition: transform 0.3s ease;
@@ -75,12 +123,10 @@ img:hover {
 # ---------------- PATH HANDLING ----------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# ---- Load small file from repo ----
 movies = pd.DataFrame(
     pickle.load(open(os.path.join(BASE_DIR, "movie_dict.pkl"), "rb"))
 )
 
-# ---- Google Drive similarity model ----
 SIMILARITY_FILE = os.path.join(BASE_DIR, "similarity.pkl")
 GDRIVE_FILE_ID = "1L7RZ6skgpYHU3_xEq0QElrOFZUjahQ5Y"
 GDRIVE_URL = f"https://drive.google.com/uc?id={GDRIVE_FILE_ID}"
@@ -89,7 +135,6 @@ GDRIVE_URL = f"https://drive.google.com/uc?id={GDRIVE_FILE_ID}"
 def load_similarity():
     if not os.path.exists(SIMILARITY_FILE):
         gdown.download(GDRIVE_URL, SIMILARITY_FILE, quiet=False)
-
     with open(SIMILARITY_FILE, "rb") as f:
         return pickle.load(f)
 
@@ -134,6 +179,7 @@ st.markdown(
     "<div class='tagline'>Match your <b>mood</b>. Find your <b>cinema</b>.</div>",
     unsafe_allow_html=True
 )
+
 st.markdown("<br><br>", unsafe_allow_html=True)
 
 # ---------------- SEARCH ----------------
@@ -159,44 +205,18 @@ if poster:
         )
 
     with col2:
-        st.markdown(
-            f"""
-            <h2>
-                <a href="{google_search_url(selected_movie)}" target="_blank">
-                    {selected_movie}
-                </a>
-            </h2>
-            """,
-            unsafe_allow_html=True
-        )
+        st.markdown(f"<h2>{selected_movie}</h2>", unsafe_allow_html=True)
 
         if imdb_rating:
-            st.markdown(
-                f"<p class='rating imdb'>⭐ IMDb Rating: <b>{imdb_rating}</b></p>",
-                unsafe_allow_html=True
-            )
-
+            st.markdown(f"<p class='rating imdb'>⭐ IMDb Rating: <b>{imdb_rating}</b></p>", unsafe_allow_html=True)
         if rt_rating:
-            st.markdown(
-                f"<p class='rating rt'>🍅 Rotten Tomatoes: <b>{rt_rating}</b></p>",
-                unsafe_allow_html=True
-            )
-
+            st.markdown(f"<p class='rating rt'>🍅 Rotten Tomatoes: <b>{rt_rating}</b></p>", unsafe_allow_html=True)
         if plot:
-            st.markdown(
-                f"<div class='plot'>{plot}</div>",
-                unsafe_allow_html=True
-            )
+            st.markdown(f"<div class='plot'>{plot}</div>", unsafe_allow_html=True)
 
 # ---------------- RECOMMENDATIONS ----------------
 st.markdown(
-    """
-    <div class="section-title">
-        <span style="color:white;">The following films</span>
-        <span style="color:#E50914;"> match your taste</span>
-    </div>
-    <br>
-    """,
+    "<div class='section-title'>Recommended for you</div>",
     unsafe_allow_html=True
 )
 
@@ -216,24 +236,8 @@ for col, movie in zip(cols, recommend(selected_movie)):
             )
 
         if imdb_r:
-            st.markdown(
-                f"<div class='rating imdb'>⭐ {imdb_r}</div>",
-                unsafe_allow_html=True
-            )
-
+            st.markdown(f"<div class='rating imdb'>⭐ {imdb_r}</div>", unsafe_allow_html=True)
         if rt_r:
-            st.markdown(
-                f"<div class='rating rt'>🍅 {rt_r}</div>",
-                unsafe_allow_html=True
-            )
+            st.markdown(f"<div class='rating rt'>🍅 {rt_r}</div>", unsafe_allow_html=True)
 
-        st.markdown(
-            f"""
-            <div class="movie-name">
-                <a href="{google_search_url(movie)}" target="_blank">
-                    {movie}
-                </a>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        st.markdown(f"<div class='movie-name'>{movie}</div>", unsafe_allow_html=True)
