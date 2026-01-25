@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 import requests
 import os
+import gdown
 
 # ---------------- CONFIG ----------------
 OMDB_API_KEY = "e46ecace"
@@ -20,14 +21,10 @@ body, .main {
     background: radial-gradient(circle at top, #1f1f1f, #0b0b0b);
     color: white;
 }
-
-/* Remove all visible link styling */
 a, a:visited, a:hover, a:active {
     color: inherit !important;
     text-decoration: none !important;
 }
-
-/* Typography */
 h1 {
     font-size: 64px;
     font-weight: 800;
@@ -47,36 +44,24 @@ h1 {
     font-size: 28px;
     margin-top: 40px;
 }
-
-/* Movie cards */
 .movie-name {
     text-align: center;
     font-size: 15px;
     margin-top: 6px;
     color: #e5e5e5;
 }
-
-/* Ratings */
 .rating {
     font-size: 15px;
     margin-top: 6px;
 }
-.imdb {
-    color: #f5c518;
-}
-.rt {
-    color: #FF4C4C;
-}
-
-/* Plot */
+.imdb { color: #f5c518; }
+.rt { color: #FF4C4C; }
 .plot {
     font-size: 15px;
     color: #cccccc;
     margin-top: 12px;
     line-height: 1.4;
 }
-
-/* Images */
 img {
     border-radius: 12px;
     transition: transform 0.3s ease;
@@ -89,12 +74,26 @@ img:hover {
 
 # ---------------- PATH HANDLING ----------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# ---- Load small file from repo ----
 movies = pd.DataFrame(
-    pickle.load(open(os.path.join(BASE_DIR, 'movie_dict.pkl'), 'rb'))
+    pickle.load(open(os.path.join(BASE_DIR, "movie_dict.pkl"), "rb"))
 )
-similarity = pickle.load(
-    open(os.path.join(BASE_DIR, 'similarity.pkl'), 'rb')
-)
+
+# ---- Google Drive similarity model ----
+SIMILARITY_FILE = os.path.join(BASE_DIR, "similarity.pkl")
+GDRIVE_FILE_ID = "1L7RZ6skgpYHU3_xEq0QElrOFZUjahQ5Y"
+GDRIVE_URL = f"https://drive.google.com/uc?id={GDRIVE_FILE_ID}"
+
+@st.cache_resource(show_spinner="Loading recommendation model...")
+def load_similarity():
+    if not os.path.exists(SIMILARITY_FILE):
+        gdown.download(GDRIVE_URL, SIMILARITY_FILE, quiet=False)
+
+    with open(SIMILARITY_FILE, "rb") as f:
+        return pickle.load(f)
+
+similarity = load_similarity()
 
 # ---------------- HELPERS ----------------
 def fetch_movie_details(title):
@@ -135,7 +134,6 @@ st.markdown(
     "<div class='tagline'>Match your <b>mood</b>. Find your <b>cinema</b>.</div>",
     unsafe_allow_html=True
 )
-
 st.markdown("<br><br>", unsafe_allow_html=True)
 
 # ---------------- SEARCH ----------------
@@ -163,7 +161,7 @@ if poster:
     with col2:
         st.markdown(
             f"""
-            <h2 style="color:white;">
+            <h2>
                 <a href="{google_search_url(selected_movie)}" target="_blank">
                     {selected_movie}
                 </a>
