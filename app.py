@@ -17,37 +17,31 @@ st.set_page_config(
 # ---------------- AUTO LIGHT / DARK STYLING ----------------
 st.markdown("""
 <style>
-/* ===== DEFAULT (Light Mode) ===== */
 html, body, [class*="css"] {
     background-color: #ffffff !important;
     color: #000000 !important;
 }
-
 .main {
     background-color: #ffffff !important;
 }
-
 section[data-testid="stSidebar"] {
     background-color: #ffffff !important;
 }
 
-/* ===== DARK MODE ===== */
 @media (prefers-color-scheme: dark) {
     html, body, [class*="css"] {
         background-color: #000000 !important;
         color: #ffffff !important;
     }
-
     .main {
         background-color: #000000 !important;
     }
-
     section[data-testid="stSidebar"] {
         background-color: #000000 !important;
     }
 }
 
-/* Remove link styling */
+/* Remove visible link styling */
 a, a:visited, a:hover, a:active {
     color: inherit !important;
     text-decoration: none !important;
@@ -59,47 +53,41 @@ h1 {
     font-weight: 800;
     letter-spacing: -2px;
 }
-
 .tagline {
     font-size: 20px;
     color: #777777;
 }
-
 @media (prefers-color-scheme: dark) {
-    .tagline {
-        color: #b3b3b3;
-    }
+    .tagline { color: #b3b3b3; }
 }
 
-.accent {
-    color: #E50914;
-}
+.accent { color: #E50914; }
+.always-red { color: #E50914; font-weight: 600; }
 
 .section-title {
     font-size: 28px;
     margin-top: 40px;
 }
 
-/* Always-red Netflix accent */
-.always-red {
-    color: #E50914 !important;
-    font-weight: 600;
-}
-
-/* Movie cards */
+/* Recommendation cards (CENTER aligned) */
 .movie-name {
     text-align: center;
     font-size: 15px;
     margin-top: 6px;
 }
 
-/* Ratings */
 .rating {
     font-size: 15px;
     margin-top: 6px;
+    text-align: center;
 }
 .imdb { color: #f5c518; }
 .rt { color: #E50914; }
+
+/* Selected movie overrides (LEFT aligned) */
+.selected-movie .rating {
+    text-align: left !important;
+}
 
 /* Plot */
 .plot {
@@ -108,11 +96,8 @@ h1 {
     margin-top: 12px;
     line-height: 1.4;
 }
-
 @media (prefers-color-scheme: dark) {
-    .plot {
-        color: #cccccc;
-    }
+    .plot { color: #cccccc; }
 }
 
 /* Images */
@@ -133,7 +118,6 @@ img:hover {
     text-align: center;
     color: #666666;
 }
-
 @media (prefers-color-scheme: dark) {
     .footer {
         border-top: 1px solid #333333;
@@ -143,7 +127,7 @@ img:hover {
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------- PATH HANDLING ----------------
+# ---------------- LOAD DATA ----------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 movies = pd.DataFrame(
@@ -163,10 +147,14 @@ def load_similarity():
 
 similarity = load_similarity()
 
-# ---------------- HELPERS ----------------
+# ---------------- HELPERS (CACHED) ----------------
+@st.cache_data(show_spinner=False)
 def fetch_movie_details(title):
-    url = f"http://www.omdbapi.com/?t={title}&apikey={OMDB_API_KEY}&plot=short"
-    data = requests.get(url).json()
+    try:
+        url = f"http://www.omdbapi.com/?t={title}&apikey={OMDB_API_KEY}&plot=short"
+        data = requests.get(url, timeout=5).json()
+    except Exception:
+        return None, None, None, None
 
     poster = data.get("Poster")
     plot = data.get("Plot")
@@ -186,6 +174,7 @@ def fetch_movie_details(title):
 def google_search_url(title):
     return f"https://www.google.com/search?q={title.replace(' ', '+')}+film"
 
+@st.cache_data(show_spinner=False)
 def recommend(movie):
     idx = movies[movies["title"] == movie].index[0]
     distances = similarity[idx]
@@ -202,13 +191,13 @@ st.markdown(
     "<div class='tagline'>Match your <b>mood</b>. Find your <b>cinema</b>.</div>",
     unsafe_allow_html=True
 )
-
 st.markdown("<br><br>", unsafe_allow_html=True)
 
 # ---------------- SEARCH ----------------
 selected_movie = st.selectbox(
     "What are you in the mood to watch?",
-    movies["title"].values
+    movies["title"].values,
+    index=0
 )
 
 # ---------------- SELECTED MOVIE ----------------
@@ -228,14 +217,20 @@ if poster:
         )
 
     with col2:
-        st.markdown(f"<h2>{selected_movie}</h2>", unsafe_allow_html=True)
+        html = f"""
+        <div class="selected-movie">
+            <h2>{selected_movie}</h2>
+        """
 
         if imdb_rating:
-            st.markdown(f"<p class='rating imdb'>⭐ IMDb Rating: <b>{imdb_rating}</b></p>", unsafe_allow_html=True)
+            html += f"<p class='rating imdb'>⭐ IMDb Rating: <b>{imdb_rating}</b></p>"
         if rt_rating:
-            st.markdown(f"<p class='rating rt'>🍅 Rotten Tomatoes: <b>{rt_rating}</b></p>", unsafe_allow_html=True)
+            html += f"<p class='rating rt'>🍅 Rotten Tomatoes: <b>{rt_rating}</b></p>"
         if plot:
-            st.markdown(f"<div class='plot'>{plot}</div>", unsafe_allow_html=True)
+            html += f"<div class='plot'>{plot}</div>"
+
+        html += "</div>"
+        st.markdown(html, unsafe_allow_html=True)
 
 # ---------------- RECOMMENDATIONS ----------------
 st.markdown(
@@ -276,9 +271,8 @@ st.markdown(
     """
     <div class="footer">
         Created by <b>Soham Mondal</b><br>
-        For any query contact <b>
-        <a href="mailto:sohammondal29@gmail.com">sohammondal29@gmail.com</a>
-        </b>
+        For any query contact
+        <b><a href="mailto:sohammondal29@gmail.com">sohammondal29@gmail.com</a></b>
     </div>
     """,
     unsafe_allow_html=True
